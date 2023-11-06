@@ -36,6 +36,7 @@ async function run() {
   try {
    await client.connect();
     const bakeryCollection = client.db('bakeryDB').collection('bakery');
+    
     // post all data in server 
     app.post('/bakery', async(req, res) => {
         try {
@@ -59,6 +60,21 @@ async function run() {
       res.send(result);
     })
 
+    const orderCollection = client.db('bakeryDB').collection('order');
+    // post order 
+    app.post('/order', async(req, res) => {
+      const user = req.body;
+      const result = await orderCollection.insertOne(user);
+      console.log(result)
+      res.send(result);
+    })
+
+    app.get('/order', async(req, res) => {
+
+    })
+
+
+
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
@@ -66,12 +82,6 @@ async function run() {
   }
 }
 run().catch(console.dir);
-
-
-
-
-
-
 
 app.get('/', (req, res) => {
     res.send('Bakery is running')

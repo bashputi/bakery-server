@@ -1,22 +1,20 @@
 const express = require('express');
 const cors = require('cors');
-// const jwt = require('jsonwebtoken');
-// const cookieParser= require('cookie-parser');
+const jwt = require('jsonwebtoken');
+const cookieParser= require('cookie-parser');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5174', 'http://localhost:5176'],
+credentials: true,
+}));
+
 app.use(express.json());
+app.use(cookieParser());
 
 const port = process.env.PORT || 5000;
-
-// app.use(cors({
-//     origin: ['http://localhost:5173'],
-//   credentials: true,
-// }));
-
-// app.use(cookieParser());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fobkzbd.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -28,15 +26,33 @@ const client = new MongoClient(uri, {
   }
 });
 
+const verifyToken = async(req, res, next) => {
+  const token = req.cookies?.token;
+  if(!token){
+    return res.status(401).send({message: 'Unauthorized access'})
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decorded) => {
+    if(err){
+      return res.status(401).send({message: 'unauthorized'})
+    }
+    console.log(decorded);
+    req.user = decorded;
+    next()
+  })
+};
+// middlewear
 
 
-
+// const logger = async(req, res, next) => {
+//   const hostname = req.hostname;
+//   console.log('called:', hostname, req.originalUrl)
+//   next()
+// }
 
 async function run() {
   try {
-   await client.connect();
+  //  await client.connect();
     const bakeryCollection = client.db('bakeryDB').collection('bakery');
-    
     // post all data in server 
     app.post('/bakery', async(req, res) => {
         try {
@@ -47,6 +63,23 @@ async function run() {
             console.log(error)
         }
     });
+
+    app.post('jwt', async(req, res) => {
+      const user = req.body;
+      console.log(user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,
+        {expiresIn: '1h'});
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: false
+        })
+        .send({success: true});
+    })
+    app.post('/logout', async(req, res) => {
+      const user = req.body;
+    console.log(user);
+      res.clearCookie('token', {maxAge: 0}.send({success: true}))
+    })
     // get all data from server 
     app.get('/bakery', async(req, res) => {
         const result = await bakeryCollection.find().toArray();
@@ -59,19 +92,52 @@ async function run() {
       const result = await bakeryCollection.findOne(query);
       res.send(result);
     })
+   
 
     const orderCollection = client.db('bakeryDB').collection('order');
     // post order 
     app.post('/order', async(req, res) => {
       const user = req.body;
       const result = await orderCollection.insertOne(user);
-      console.log(result)
       res.send(result);
     })
 
     app.get('/order', async(req, res) => {
-
+      const cursor = await orderCollection.find().toArray();
+      res.send(cursor);
     })
+  app.get('/order', verifyToken, async(req, res) => {
+    console.log(req.query.email);
+    if(req.query.email !== req.user.email){
+      return res.status(403).send({message: 'forbidden access'})
+    }
+    let query = {};
+    if (req.query?.email) {
+      query = { email: req.query.email }
+     }
+    const result = await orderCollection.find(query).toArray();
+    res.send(result);
+  })
+  app.delete('/order/:id', async(req, res)=>{
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+    const result = await orderCollection.deleteOne(query);
+    res.send(result);
+  })
+
+  app.patch('/order/:id', async(req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id) };
+    const updatedorder = req.body;
+    console.log(updatedorder);
+    const updateDoc = {
+      $set: {
+        status: updatedorder.status
+      }
+    };
+    const result = await orderCollection.updateOne(filter, updateDoc);
+    res.send(result);
+  })
 
 
 

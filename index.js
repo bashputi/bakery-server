@@ -27,26 +27,27 @@ const client = new MongoClient(uri, {
   }
 });
 
-const verifyToken = async(req, res, next) => {
-  const token = req.cookies?.token;
-  if(!token){
-    return res.status(401).send({message: 'Unauthorized access'})
-  }
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decorded) => {
-    if(err){
-      return res.status(401).send({message: 'unauthorized'})
-    }
-    console.log(decorded);
-    req.user = decorded;
-    next()
-  })
-};
+// const verifyToken = async(req, res, next) => {
+//   const token = req.cookies?.token;
+//   console.log(token)
+//   if(!token){
+//     return res.status(401).send({message: 'Unauthorized access'})
+//   }
+//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decorded) => {
+//     if(err){
+//       return res.status(401).send({message: 'unauthorized'})
+//     }
+//     console.log(decorded);
+//     req.user = decorded;
+//     next()
+//   })
+// };
+
+
 // middlewear
-
-
 // const logger = async(req, res, next) => {
 //   const hostname = req.hostname;
-//   console.log('called:', hostname, req.originalUrl)
+//   console.log('called:', hostname, req.originalUrl);
 //   next()
 // }
 
@@ -82,7 +83,7 @@ async function run() {
       res.clearCookie('token', {maxAge: 0}.send({success: true}))
     })
     // get all data from server 
-    app.get('/bakery', async(req, res) => {
+    app.get('/bakery',  async(req, res) => {
         const result = await bakeryCollection.find().toArray();
         res.send(result);
     })
@@ -93,8 +94,33 @@ async function run() {
       const result = await bakeryCollection.findOne(query);
       res.send(result);
     })
-   
+    // page count 
+    app.get('/bakery', async(req, res) => {
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+        const result = await bakeryCollection.find()
+        .skip(page * size)
+        .limit(size)
+        .toArray();
+        res.send(result);
+    })
 
+    app.post('/productByIds', async(req, res) => {
+      const ids = req.body;
+      const idsWithObjectId = ids.map(id => new ObjectId(id))
+      const query = {
+        _id: {
+          $in: idsWithObjectId
+        }
+      }
+      const result = await bakeryCollection.find(query).toArray
+      res.send(result)
+    })
+    app.get('/bakery', async(req, res) => {
+      const count = await bakeryCollection.estimatedDocumentCount();
+      res.send({count});
+    })
+   
     const orderCollection = client.db('bakeryDB').collection('order');
     // post order 
     app.post('/order', async(req, res) => {
@@ -107,18 +133,26 @@ async function run() {
       const cursor = await orderCollection.find().toArray();
       res.send(cursor);
     })
-  app.get('/order', verifyToken, async(req, res) => {
-    console.log(req.query.email);
-    if(req.query.email !== req.user.email){
-      return res.status(403).send({message: 'forbidden access'})
-    }
-    let query = {};
-    if (req.query?.email) {
-      query = { email: req.query.email }
-     }
-    const result = await orderCollection.find(query).toArray();
-    res.send(result);
-  })
+    // app.get('/order/:id', async(req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: new ObjectId(id)};
+    //   const result = await orderCollection.findOne(query);
+    //   res.send(result);
+    // })
+
+  // app.get('/order', verifyToken, async(req, res) => {
+  //   console.log(req.query.email);
+  //   if(req.query.email !== req.user.email){
+  //     return res.status(403).send({message: 'forbidden access'})
+  //   }
+  //   let query = {};
+  //   if (req.query?.email) {
+  //     query = { email: req.query.email }
+  //    }
+  //   const result = await orderCollection.find(query).toArray();
+  //   res.send(result);
+  // })
+
   app.delete('/order/:id', async(req, res)=>{
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
@@ -152,6 +186,18 @@ async function run() {
     const cursor = await myCollection.find().toArray();
     res.send(cursor);
   })
+  // app.get('/item',  verifyToken, async(req, res) => {
+  //   console.log(req.query.email);
+  //   if(req.query.email !== req.user.email){
+  //     return res.status(403).send({message: 'forbidden access'})
+  //   }
+  //   let query = {};
+  //   if (req.query?.email) {
+  //     query = { email: req.query.email }
+  //    }
+  //   const result = await myCollection.find(query).toArray();
+  //   res.send(result);
+  // })
   app.get('/item/:id', async(req, res) => {
     const id = req.params.id;
     const query = { _id: new ObjectId(id)};

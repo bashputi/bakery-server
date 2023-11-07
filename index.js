@@ -152,10 +152,36 @@ async function run() {
     const cursor = await myCollection.find().toArray();
     res.send(cursor);
   })
+  app.get('/item/:id', async(req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id)};
+    const result = await myCollection.findOne(query);
+    res.send(result);
+  })
   app.delete('/item/:id', async(req, res)=>{
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
     const result = await myCollection.deleteOne(query);
+    res.send(result);
+  })
+  app.put('/item/:id', async(req, res) => {
+    const id = req.params.id;
+    const filter = {_id: new ObjectId(id)};
+    const options = { upsert: true };
+    const updatedItem = req.body;
+    const item ={
+      $set: {
+        foodname: updatedItem.foodName,
+        img: updatedItem.pic,
+        quantity: updatedItem.quantity,
+        price: updatedItem.price,
+        customerName: updatedItem.name,
+        email: updatedItem.email,
+        origin: updatedItem.origin,
+        recipie: updatedItem.recipie
+      }
+    };
+    const result = await myCollection.updateOne(filter, item, options);
     res.send(result);
   })
 

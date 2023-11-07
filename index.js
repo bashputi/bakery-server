@@ -7,7 +7,8 @@ require('dotenv').config();
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5174', 'http://localhost:5176'],
+  origin: ['http://localhost:5174', 'http://localhost:5176',
+  'http://localhost:5173'],
 credentials: true,
 }));
 
@@ -138,8 +139,19 @@ async function run() {
     const result = await orderCollection.updateOne(filter, updateDoc);
     res.send(result);
   })
+  // my item 
+  const myCollection = client.db('bakeryDB').collection('item');
 
+  app.post('/item', async(req, res) => {
+    const user = req.body;
+    const result = await myCollection.insertOne(user);
+    res.send(result);
+  })
 
+  app.get('/item', async(req, res) => {
+    const cursor = await myCollection.find().toArray();
+    res.send(cursor);
+  })
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");

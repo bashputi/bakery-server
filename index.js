@@ -7,8 +7,11 @@ require('dotenv').config();
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5174', 'http://localhost:5176',
-  'http://localhost:5173'],
+  origin: [
+
+'https://bakery-client-2384d.web.app',
+'https://bakery-client-2384d.firebaseapp.com'
+],
 credentials: true,
 }));
 
@@ -84,7 +87,13 @@ async function run() {
     })
     // get all data from server 
     app.get('/bakery',  async(req, res) => {
-        const result = await bakeryCollection.find().toArray();
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+      console.log('pagi', req.query)
+        const result = await bakeryCollection.find()
+        .skip(page * size)
+        .limit(size)
+        .toArray();
         res.send(result);
     })
     // get single data 
@@ -95,16 +104,6 @@ async function run() {
       res.send(result);
     })
     // page count 
-    app.get('/bakery', async(req, res) => {
-      const page = parseInt(req.query.page);
-      const size = parseInt(req.query.size);
-        const result = await bakeryCollection.find()
-        .skip(page * size)
-        .limit(size)
-        .toArray();
-        res.send(result);
-    })
-
     app.post('/productByIds', async(req, res) => {
       const ids = req.body;
       const idsWithObjectId = ids.map(id => new ObjectId(id))
@@ -116,10 +115,7 @@ async function run() {
       const result = await bakeryCollection.find(query).toArray
       res.send(result)
     })
-    app.get('/bakery', async(req, res) => {
-      const count = await bakeryCollection.estimatedDocumentCount();
-      res.send({count});
-    })
+   
    
     const orderCollection = client.db('bakeryDB').collection('order');
     // post order 

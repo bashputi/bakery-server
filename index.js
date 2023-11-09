@@ -8,7 +8,7 @@ const app = express();
 
 app.use(cors({
   origin: [
-    // 'http://localhost:5173'
+    // 'http://localhost:5174',
 'https://bakery-client-2384d.web.app',
 'https://bakery-client-2384d.firebaseapp.com'
 ],
@@ -30,21 +30,21 @@ const client = new MongoClient(uri, {
   }
 });
 
-const verifyToken = async(req, res, next) => {
-  const token = req.cookies?.token;
-  console.log(token)
-  if(!token){
-    return res.status(401).send({message: 'Unauthorized access'})
-  }
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decorded) => {
-    if(err){
-      return res.status(401).send({message: 'unauthorized'})
-    }
-    console.log(decorded);
-    req.user = decorded;
-    next()
-  })
-};
+// const verifyToken = async(req, res, next) => {
+//   const token = req.cookies?.token;
+//   console.log(token)
+//   if(!token){
+//     return res.status(401).send({message: 'Unauthorized access'})
+//   }
+//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decorded) => {
+//     if(err){
+//       return res.status(401).send({message: 'unauthorized'})
+//     }
+//     console.log(decorded);
+//     req.user = decorded;
+//     next()
+//   })
+// };
 
 async function run() {
   try {
@@ -61,22 +61,22 @@ async function run() {
         }
     });
 // auth post 
-    app.post('/jwt', async(req, res) => {
-      const user = req.body;
-      console.log('user for token', user);
-       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,
-        {expiresIn: '1h'});
-       res.cookie('token', token, {
-         httpOnly: true,
-           secure: true
-        })
-         .send({success: true});
-    })
-    app.post('/logout', async(req, res) => {
-      const user = req.body;
-    console.log(user);
-    res.clearCookie('token', {maxAge: 0}).send({success: true});
-    })
+    // app.post('/jwt', async(req, res) => {
+    //   const user = req.body;
+    //   console.log('user for token', user);
+    //    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,
+    //     {expiresIn: '1h'});
+    //    res.cookie('token', token, {
+    //      httpOnly: true,
+    //        secure: true
+    //     })
+    //      .send({success: true});
+    // })
+    // app.post('/logout', async(req, res) => {
+    //   const user = req.body;
+    // console.log(user);
+    // res.clearCookie('token', {maxAge: 0}).send({success: true});
+    // })
     // get all data from server 
     app.get('/bakery',  async(req, res) => {
       const page = parseInt(req.query.page);
@@ -111,18 +111,18 @@ async function run() {
     })
    
 
-  app.get('/order', verifyToken, async(req, res) => {
-    console.log(req.query.email);
-    if(req.query.email !== req.user.email){
-      return res.status(403).send({message: 'forbidden access'})
-    }
-    let query = {};
-    if (req.query?.email) {
-      query = { email: req.query.email }
-     }
-    const result = await orderCollection.find(query).toArray();
-    res.send(result);
-  })
+  // app.get('/order', verifyToken, async(req, res) => {
+  //   console.log(req.query.email);
+  //   if(req.query.email !== req.user.email){
+  //     return res.status(403).send({message: 'forbidden access'})
+  //   }
+  //   let query = {};
+  //   if (req.query?.email) {
+  //     query = { email: req.query.email }
+  //    }
+  //   const result = await orderCollection.find(query).toArray();
+  //   res.send(result);
+  // })
 
   app.delete('/order/:id', async(req, res)=>{
     const id = req.params.id;
